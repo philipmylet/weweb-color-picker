@@ -41,6 +41,48 @@
         <div class="opacity-gradient" :style="opacityGradientStyle"></div>
         <div class="opacity-cursor" :style="{ left: opacityPosition }"></div>
       </div>
+      
+      <!-- Bottom Row -->
+      <div class="bottom-row">
+        <div class="format-selector-wrapper">
+          <select 
+            class="format-selector" 
+            v-model="colorFormat"
+            @click.stop
+            @mousedown.stop
+          >
+            <option value="hex">HEX</option>
+            <option value="rgb">RGB</option>
+            <option value="hsl">HSL</option>
+          </select>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+        
+        <div class="color-input-wrapper">
+          <span v-if="colorFormat === 'hex'" class="input-prefix">#</span>
+          <input 
+            class="color-input" 
+            type="text"
+            :value="formattedColorValue"
+            @input="handleColorInput"
+            @click.stop
+            @mousedown.stop
+            @focus="$event.target.select()"
+          />
+        </div>
+        
+        <input 
+          class="opacity-input" 
+          type="text"
+          :value="opacityPercentage"
+          @input="handleOpacityInput"
+          @click.stop
+          @mousedown.stop
+          @focus="$event.target.select()"
+        />
+        
+        <div class="color-preview-box" :style="{ '--preview-color': previewColor }"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -72,6 +114,7 @@ export default {
       saturation: 100,
       brightness: 100,
       opacity: 1,
+      colorFormat: 'hex',
       activeCleanup: null,
     };
   },
@@ -107,6 +150,28 @@ export default {
       return {
         background: `linear-gradient(to right, rgba(${r}, ${g}, ${b}, 0), rgba(${r}, ${g}, ${b}, 1))`,
       };
+    },
+    formattedColorValue() {
+      const { r, g, b } = this.hsbToRgb(this.hue, this.saturation, this.brightness);
+      
+      if (this.colorFormat === 'hex') {
+        return this.hsbToHex(this.hue, this.saturation, this.brightness).substring(1).toUpperCase();
+      } else if (this.colorFormat === 'rgb') {
+        return `${r}, ${g}, ${b}`;
+      } else if (this.colorFormat === 'hsl') {
+        const h = Math.round(this.hue);
+        const s = Math.round(this.saturation);
+        const l = Math.round((this.brightness * (200 - this.saturation)) / 200);
+        return `${h}, ${s}%, ${l}%`;
+      }
+      return '';
+    },
+    opacityPercentage() {
+      return Math.round(this.opacity * 100) + '%';
+    },
+    previewColor() {
+      const { r, g, b } = this.hsbToRgb(this.hue, this.saturation, this.brightness);
+      return `rgba(${r}, ${g}, ${b}, ${this.opacity})`;
     },
   },
   beforeUnmount() {
@@ -458,6 +523,54 @@ export default {
       console.log('🎨 Setting color:', hex);
       this.setSelectedColor(hex);
     },
+    handleColorInput(e) {
+      const value = e.target.value.trim();
+      
+      if (this.colorFormat === 'hex') {
+        // Parse hex color
+        const hex = value.startsWith('#') ? value : `#${value}`;
+        if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+          const hsb = this.hexToHsb(hex);
+          this.hue = hsb.h;
+          this.saturation = hsb.s;
+          this.brightness = hsb.b;
+          this.updateSelectedColor();
+        }
+      } else if (this.colorFormat === 'rgb') {
+        // Parse RGB format: "r, g, b"
+        const parts = value.split(',').map(p => parseInt(p.trim()));
+        if (parts.length === 3 && parts.every(p => p >= 0 && p <= 255)) {
+          const hsb = this.rgbToHsb(parts[0], parts[1], parts[2]);
+          this.hue = hsb.h;
+          this.saturation = hsb.s;
+          this.brightness = hsb.b;
+          this.updateSelectedColor();
+        }
+      } else if (this.colorFormat === 'hsl') {
+        // Parse HSL format: "h, s%, l%"
+        const parts = value.split(',').map(p => p.trim().replace('%', ''));
+        if (parts.length === 3) {
+          const h = parseFloat(parts[0]);
+          const s = parseFloat(parts[1]);
+          const l = parseFloat(parts[2]);
+          if (!isNaN(h) && !isNaN(s) && !isNaN(l)) {
+            const hsb = this.hslToHsb(h, s, l);
+            this.hue = hsb.h;
+            this.saturation = hsb.s;
+            this.brightness = hsb.b;
+            this.updateSelectedColor();
+          }
+        }
+      }
+    },
+    handleOpacityInput(e) {
+      const value = e.target.value.trim().replace('%', '');
+      const opacity = parseFloat(value);
+      if (!isNaN(opacity) && opacity >= 0 && opacity <= 100) {
+        this.opacity = opacity / 100;
+        this.updateSelectedColor();
+      }
+    },
     hsbToHex(h, s, b) {
       s = s / 100;
       b = b / 100;
@@ -478,6 +591,37 @@ export default {
         g: Math.round(255 * f(3)),
         b: Math.round(255 * f(1)),
       };
+    },
+    hexToHsb(hex) {
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      return this.rgbToHsb(r * 255, g * 255, b * 255);
+    },
+    rgbToHsb(r, g, b) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const delta = max - min;
+      
+      let h = 0;
+      if (delta !== 0) {
+        if (max === r) h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+        else if (max === g) h = ((b - r) / delta + 2) * 60;
+        else h = ((r - g) / delta + 4) * 60;
+      }
+      
+      const s = max === 0 ? 0 : (delta / max) * 100;
+      const br = max * 100;
+      
+      return { h, s, b: br };
+    },
+    hslToHsb(h, s, l) {
+      const brightness = l + (s * Math.min(l, 100 - l)) / 100;
+      const saturation = brightness === 0 ? 0 : 2 * (1 - l / brightness) * 100;
+      return { h, s: saturation, b: brightness };
     },
   },
 };
@@ -652,5 +796,135 @@ export default {
   z-index: 1;
   will-change: transform;
   transform: translateZ(0) translate(-50%, -50%);
+}
+
+.bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.format-selector-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.format-selector {
+  padding: 6px 24px 6px 8px;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.format-selector:hover {
+  background: #333;
+}
+
+.format-selector:focus {
+  border-color: #555;
+}
+
+.dropdown-arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  color: #888;
+  pointer-events: none;
+}
+
+.color-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: 8px;
+  color: #888;
+  font-size: 11px;
+  font-family: monospace;
+  pointer-events: none;
+}
+
+.color-input {
+  width: 100%;
+  padding: 6px 8px;
+  padding-left: 20px;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-family: monospace;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.color-input:hover {
+  background: #333;
+}
+
+.color-input:focus {
+  border-color: #555;
+  background: #333;
+}
+
+.opacity-input {
+  width: 48px;
+  padding: 6px 8px;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: center;
+  outline: none;
+}
+
+.opacity-input:hover {
+  background: #333;
+}
+
+.opacity-input:focus {
+  border-color: #555;
+  background: #333;
+}
+
+.color-preview-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #3a3a3a;
+  flex-shrink: 0;
+  background: 
+    linear-gradient(45deg, #555 25%, transparent 25%), 
+    linear-gradient(-45deg, #555 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #555 75%), 
+    linear-gradient(-45deg, transparent 75%, #555 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  position: relative;
+}
+
+.color-preview-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: var(--preview-color);
 }
 </style>
