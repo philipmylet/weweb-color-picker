@@ -1,14 +1,39 @@
 <template>
   <div class="color-picker-wrapper">
-    <div class="color-picker-trigger" @click="togglePicker">
-      <div class="color-preview" :style="{ backgroundColor: color }"></div>
+    <div 
+      class="color-picker-trigger" 
+      @click="togglePicker"
+      :style="{
+        width: content.triggerWidth || '32px',
+        height: content.triggerHeight || '32px',
+        borderRadius: content.triggerBorderRadius || '4px',
+        padding: content.triggerPadding || '4px'
+      }"
+    >
+      <div 
+        class="color-preview" 
+        :style="{ 
+          backgroundColor: color,
+          borderRadius: content.triggerPreviewRadius || '2px'
+        }"
+      ></div>
     </div>
     
     <!-- Overlay -->
     <div v-if="isOpen" class="overlay" @click="togglePicker"></div>
     
     <!-- Picker Container -->
-    <div v-if="isOpen" class="picker-container" @click.stop @mousedown.stop>
+    <div 
+      v-if="isOpen" 
+      class="picker-container" 
+      @click.stop 
+      @mousedown.stop
+      :style="{
+        width: content.panelWidth || '280px',
+        padding: content.panelPadding || '12px',
+        borderRadius: content.panelBorderRadius || '8px'
+      }"
+    >
       <div 
         class="saturation-panel" 
         ref="saturationPanel"
@@ -27,6 +52,10 @@
         ref="hueSlider"
         @mousedown.prevent.stop="startHueDrag"
         @touchstart.prevent.stop="startHueDrag"
+        :style="{
+          height: content.sliderHeight || '12px',
+          borderRadius: content.sliderBorderRadius || '6px'
+        }"
       >
         <div class="hue-cursor" :style="{ left: huePosition }"></div>
       </div>
@@ -37,6 +66,10 @@
         ref="opacitySlider"
         @mousedown.prevent.stop="startOpacityDrag"
         @touchstart.prevent.stop="startOpacityDrag"
+        :style="{
+          height: content.sliderHeight || '12px',
+          borderRadius: content.sliderBorderRadius || '6px'
+        }"
       >
         <div class="opacity-gradient" :style="opacityGradientStyle"></div>
         <div class="opacity-cursor" :style="{ left: opacityPosition }"></div>
@@ -81,7 +114,15 @@
           @focus="$event.target.select()"
         />
         
-        <div class="color-preview-box" :style="{ '--preview-color': previewColor }"></div>
+        <div 
+          class="color-preview-box" 
+          :style="{ 
+            '--preview-color': previewColor,
+            width: content.previewBoxWidth || '32px',
+            height: content.previewBoxHeight || '32px',
+            borderRadius: content.previewBoxRadius || '4px'
+          }"
+        ></div>
       </div>
     </div>
   </div>
@@ -143,6 +184,8 @@ export default {
     saturationPanelStyle() {
       return {
         backgroundColor: `hsl(${this.hue}, 100%, 50%)`,
+        height: this.content.saturationHeight || '180px',
+        borderRadius: this.content.saturationBorderRadius || '4px',
       };
     },
     opacityGradientStyle() {
@@ -634,19 +677,14 @@ export default {
 }
 
 .color-picker-trigger {
-  width: 32px;
-  height: 32px;
   cursor: pointer;
   border: 2px solid #3a3a3a;
   background: #2a2a2a;
-  border-radius: 4px;
-  padding: 4px;
 }
 
 .color-preview {
   width: 100%;
   height: 100%;
-  border-radius: 2px;
 }
 
 .overlay {
@@ -663,20 +701,15 @@ export default {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  width: 280px;
-  padding: 12px;
   background: #1e1e1e;
   border: 1px solid #3a3a3a;
-  border-radius: 8px;
   z-index: 99;
 }
 
 .saturation-panel {
   position: relative;
   width: 100%;
-  height: 180px;
   cursor: crosshair;
-  border-radius: 4px;
   user-select: none !important;
   -webkit-user-select: none !important;
   touch-action: none !important;
@@ -718,9 +751,7 @@ export default {
 .hue-slider {
   position: relative;
   width: 100%;
-  height: 12px;
   margin-top: 10px;
-  border-radius: 6px;
   cursor: pointer;
   background: linear-gradient(to right, 
     #ff0000 0%, 
@@ -754,9 +785,7 @@ export default {
 .opacity-slider {
   position: relative;
   width: 100%;
-  height: 12px;
   margin-top: 10px;
-  border-radius: 6px;
   cursor: pointer;
   background: 
     linear-gradient(45deg, #ccc 25%, transparent 25%), 
@@ -905,9 +934,6 @@ export default {
 }
 
 .color-preview-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
   border: 1px solid #3a3a3a;
   flex-shrink: 0;
   background: 
@@ -924,7 +950,7 @@ export default {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 4px;
+  border-radius: inherit;
   background: var(--preview-color);
 }
 </style>

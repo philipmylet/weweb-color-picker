@@ -14,15 +14,6 @@ export default {
       bindable: true,
       section: "settings",
     },
-    showOpacity: {
-      label: {
-        en: "Show Opacity Slider",
-      },
-      type: "OnOff",
-      defaultValue: true,
-      bindable: true,
-      section: "settings",
-    },
     // Trigger Styling
     triggerWidth: {
       label: {
@@ -57,6 +48,15 @@ export default {
       },
       type: "Length",
       defaultValue: "4px",
+      bindable: true,
+      section: "settings",
+    },
+    triggerPreviewRadius: {
+      label: {
+        en: "Trigger Preview Border Radius",
+      },
+      type: "Length",
+      defaultValue: "2px",
       bindable: true,
       section: "settings",
     },
@@ -126,13 +126,31 @@ export default {
       bindable: true,
       section: "settings",
     },
-    // Info Section Styling
-    infoPadding: {
+    // Preview Box Styling
+    previewBoxWidth: {
       label: {
-        en: "Info Section Padding",
+        en: "Preview Box Width",
       },
       type: "Length",
-      defaultValue: "8px 0 0 0",
+      defaultValue: "32px",
+      bindable: true,
+      section: "settings",
+    },
+    previewBoxHeight: {
+      label: {
+        en: "Preview Box Height",
+      },
+      type: "Length",
+      defaultValue: "32px",
+      bindable: true,
+      section: "settings",
+    },
+    previewBoxRadius: {
+      label: {
+        en: "Preview Box Border Radius",
+      },
+      type: "Length",
+      defaultValue: "4px",
       bindable: true,
       section: "settings",
     },
