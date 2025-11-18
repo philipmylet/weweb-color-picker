@@ -12,6 +12,7 @@
       <div 
         class="saturation-panel" 
         ref="saturationPanel"
+        :style="saturationPanelStyle"
         @mousedown.prevent.stop="startSaturationDrag"
         @touchstart.prevent.stop="startSaturationDrag"
       >
@@ -95,6 +96,11 @@ export default {
     },
     opacityPosition() {
       return `${this.opacity * 100}%`;
+    },
+    saturationPanelStyle() {
+      return {
+        backgroundColor: `hsl(${this.hue}, 100%, 50%)`,
+      };
     },
     opacityGradientStyle() {
       const { r, g, b } = this.hsbToRgb(this.hue, this.saturation, this.brightness);
@@ -527,7 +533,6 @@ export default {
   height: 180px;
   cursor: crosshair;
   border-radius: 4px;
-  background: hsl(220, 100%, 50%);
   user-select: none !important;
   -webkit-user-select: none !important;
   touch-action: none !important;
