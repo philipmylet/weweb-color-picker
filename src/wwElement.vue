@@ -72,6 +72,7 @@ export default {
       colorFormat: 'hex',
       isDragging: false,
       dragType: null,
+      activeCleanup: null,
     };
   },
   computed: {
@@ -155,15 +156,14 @@ export default {
     },
   },
   mounted() {
-    document.addEventListener('mouseup', this.stopDrag);
-    document.addEventListener('mousemove', this.handleDrag);
-    document.addEventListener('mousedown', this.handleClickOutside);
     this.initializeFromDefaultColor();
   },
   beforeUnmount() {
-    document.removeEventListener('mouseup', this.stopDrag);
-    document.removeEventListener('mousemove', this.handleDrag);
-    document.removeEventListener('mousedown', this.handleClickOutside);
+    // Clean up any active drag listeners
+    if (this.activeCleanup) {
+      this.activeCleanup();
+      this.activeCleanup = null;
+    }
   },
   methods: {
     initializeFromDefaultColor() {
@@ -184,42 +184,98 @@ export default {
         this.emitChange();
       }
     },
-    handleClickOutside(e) {
-      if (!this.isOpen) return;
-      
-      const wrapper = this.$el;
-      if (wrapper && !wrapper.contains(e.target)) {
-        this.isOpen = false;
-        this.emitChange();
-      }
-    },
     startSaturationDrag(e) {
+      e.preventDefault();
+      
+      // Clean up any existing drag operation
+      if (this.activeCleanup) {
+        this.activeCleanup();
+      }
+      
       this.isDragging = true;
       this.dragType = 'saturation';
       this.handleSaturationDrag(e);
+      
+      const onMouseMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        this.handleSaturationDrag(moveEvent);
+      };
+      
+      const cleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', cleanup);
+        this.isDragging = false;
+        this.dragType = null;
+        this.activeCleanup = null;
+        this.emitChange();
+      };
+      
+      this.activeCleanup = cleanup;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', cleanup);
     },
     startHueDrag(e) {
+      e.preventDefault();
+      
+      // Clean up any existing drag operation
+      if (this.activeCleanup) {
+        this.activeCleanup();
+      }
+      
       this.isDragging = true;
       this.dragType = 'hue';
       this.handleHueDrag(e);
+      
+      const onMouseMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        this.handleHueDrag(moveEvent);
+      };
+      
+      const cleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', cleanup);
+        this.isDragging = false;
+        this.dragType = null;
+        this.activeCleanup = null;
+        this.emitChange();
+      };
+      
+      this.activeCleanup = cleanup;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', cleanup);
     },
     startOpacityDrag(e) {
+      e.preventDefault();
+      
+      // Clean up any existing drag operation
+      if (this.activeCleanup) {
+        this.activeCleanup();
+      }
+      
       this.isDragging = true;
       this.dragType = 'opacity';
       this.handleOpacityDrag(e);
-    },
-    handleDrag(e) {
-      if (!this.isDragging) return;
       
-      if (this.dragType === 'saturation') {
-        this.handleSaturationDrag(e);
-      } else if (this.dragType === 'hue') {
-        this.handleHueDrag(e);
-      } else if (this.dragType === 'opacity') {
-        this.handleOpacityDrag(e);
-      }
+      const onMouseMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        this.handleOpacityDrag(moveEvent);
+      };
+      
+      const cleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', cleanup);
+        this.isDragging = false;
+        this.dragType = null;
+        this.activeCleanup = null;
+        this.emitChange();
+      };
+      
+      this.activeCleanup = cleanup;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', cleanup);
     },
     handleSaturationDrag(e) {
+      if (!this.$refs.saturationPanel) return;
       const rect = this.$refs.saturationPanel.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
       const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
@@ -228,21 +284,16 @@ export default {
       this.brightness = 100 - (y / rect.height) * 100;
     },
     handleHueDrag(e) {
+      if (!this.$refs.hueSlider) return;
       const rect = this.$refs.hueSlider.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
       this.hue = (x / rect.width) * 360;
     },
     handleOpacityDrag(e) {
+      if (!this.$refs.opacitySlider) return;
       const rect = this.$refs.opacitySlider.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
       this.opacity = x / rect.width;
-    },
-    stopDrag() {
-      if (this.isDragging) {
-        this.isDragging = false;
-        this.dragType = null;
-        this.emitChange();
-      }
     },
     handleColorInput(e) {
       const value = e.target.value;
@@ -398,13 +449,6 @@ export default {
   width: 100%;
   height: 100%;
   border-radius: 2px;
-  background-image: 
-    linear-gradient(45deg, #808080 25%, transparent 25%),
-    linear-gradient(-45deg, #808080 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #808080 75%),
-    linear-gradient(-45deg, transparent 75%, #808080 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
 }
 
 .color-picker-panel {
@@ -422,6 +466,7 @@ export default {
   cursor: crosshair;
   margin-bottom: 12px;
   border: 1px solid #3a3a3a;
+  user-select: none;
 }
 
 .saturation-gradient {
@@ -459,6 +504,7 @@ export default {
   cursor: pointer;
   margin-bottom: 12px;
   border: 1px solid #3a3a3a;
+  user-select: none;
 }
 
 .hue-slider {
@@ -508,6 +554,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .format-select {
@@ -518,6 +566,7 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
+  flex-shrink: 0;
   
   &:focus {
     outline: none;
@@ -527,6 +576,7 @@ export default {
 
 .color-input {
   flex: 1;
+  min-width: 0;
   background: #2a2a2a;
   color: #fff;
   border: 1px solid #3a3a3a;
@@ -544,8 +594,9 @@ export default {
 .opacity-display {
   color: #999;
   font-size: 12px;
-  min-width: 40px;
+  min-width: 35px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .color-swatch {
@@ -553,12 +604,6 @@ export default {
   height: 24px;
   border-radius: 4px;
   border: 1px solid #3a3a3a;
-  background-image: 
-    linear-gradient(45deg, #808080 25%, transparent 25%),
-    linear-gradient(-45deg, #808080 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #808080 75%),
-    linear-gradient(-45deg, transparent 75%, #808080 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  flex-shrink: 0;
 }
 </style>
