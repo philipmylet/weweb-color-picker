@@ -5,18 +5,9 @@ export default {
     },
   },
   properties: {
-    defaultColor: {
+    initValue: {
       label: {
-        en: "Default Color",
-      },
-      type: "Color",
-      defaultValue: "#1677ff",
-      bindable: true,
-      section: "settings",
-    },
-    selectedColor: {
-      label: {
-        en: "Selected Color",
+        en: "Init Value",
       },
       type: "Color",
       defaultValue: "#1677ff",
