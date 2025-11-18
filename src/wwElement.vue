@@ -20,20 +20,23 @@
     </div>
     
     <!-- Overlay -->
-    <div v-if="isOpen" class="overlay" @click="togglePicker"></div>
+    <transition name="fade">
+      <div v-if="isOpen" class="overlay" @click="togglePicker"></div>
+    </transition>
     
     <!-- Picker Container -->
-    <div 
-      v-if="isOpen" 
-      class="picker-container" 
-      @click.stop 
-      @mousedown.stop
-      :style="{
-        width: content.panelWidth || '280px',
-        padding: content.panelPadding || '12px',
-        borderRadius: content.panelBorderRadius || '8px'
-      }"
-    >
+    <transition name="zoom-fade">
+      <div 
+        v-if="isOpen" 
+        class="picker-container" 
+        @click.stop 
+        @mousedown.stop
+        :style="{
+          width: content.panelWidth || '280px',
+          padding: content.panelPadding || '12px',
+          borderRadius: content.panelBorderRadius || '8px'
+        }"
+      >
       <div 
         class="saturation-panel" 
         ref="saturationPanel"
@@ -124,7 +127,8 @@
           }"
         ></div>
       </div>
-    </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -952,5 +956,38 @@ export default {
   inset: 0;
   border-radius: inherit;
   background: var(--preview-color);
+}
+
+/* Ant Design-style Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.zoom-fade-enter-active,
+.zoom-fade-leave-active {
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  transform-origin: top left;
+}
+
+.zoom-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.8) translateY(-8px);
+}
+
+.zoom-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(-4px);
+}
+
+.zoom-fade-enter-to,
+.zoom-fade-leave-from {
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 </style>
